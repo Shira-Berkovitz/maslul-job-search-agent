@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>מסלול · מעקב חיפוש עבודה</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;600;700&family=Frank+Ruhl+Libre:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1D2433;
+    --ink-soft: #5A6478;
+    --paper: #F3F5F2;
+    --surface: #FFFFFF;
+    --line: #DCE1DA;
+    --accent: #2F5FA7;
+
+    /* one color per stage: the color IS the status */
+    --saved: #8A94A6;
+    --applied: #2F5FA7;
+    --interview: #C27C0E;
+    --offer: #2B8A57;
+    --rejected: #B4473A;
+
+    --serif: "Frank Ruhl Libre", "David", "Times New Roman", serif;
+    --sans: "Assistant", "Segoe UI", "Arial Hebrew", Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font: 400 16px/1.55 var(--sans);
+  }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+  /* ---------- layout ---------- */
+  .app {
+    height: 100vh; display: grid;
+    grid-template-columns: minmax(340px, 420px) 1fr;
+    grid-template-rows: auto 1fr;
+  }
+  header.top {
+    grid-column: 1 / -1; display: flex; align-items: flex-end; gap: 32px;
+    padding: 22px 32px 18px; border-bottom: 1px solid var(--line);
+  }
+  .brand h1 {
+    margin: 0; font: 900 44px/1 var(--serif); letter-spacing: -0.5px;
+  }
+  .brand p { margin: 6px 0 0; color: var(--ink-soft); }
+  .numbers { display: flex; gap: 28px; margin-inline-start: auto; }
+  .numbers div { text-align: center; }
+  .numbers b { display: block; font: 700 26px/1.1 var(--serif); }
+  .numbers span { font-size: 13px; color: var(--ink-soft); }
+  .reset {
+    background: none; border: 1px solid var(--line); border-radius: 8px;
+    padding: 6px 12px; color: var(--ink-soft); cursor: pointer; font-size: 14px;
+  }
+  .reset:hover { border-color: var(--rejected); color: var(--rejected); }
+
+  /* ---------- chat ---------- */
+  .chat {
+    display: flex; flex-direction: column; min-height: 0;
+    background: var(--surface); border-inline-end: 1px solid var(--line);
+  }
+  .log { flex: 1; overflow-y: auto; padding: 20px 20px 8px; }
+  .msg { margin: 0 0 14px; max-width: 92%; }
+  .msg.user {
+    margin-inline-start: auto; background: var(--ink); color: #fff;
+    padding: 9px 14px; border-radius: 14px 14px 4px 14px;
+  }
+  .msg.assistant .bubble {
+    background: var(--paper); padding: 10px 14px; border-radius: 14px 14px 14px 4px;
+  }
+  .msg.error .bubble { background: #FBEDEB; color: #7A2A20; }
+  .bubble p { margin: 0 0 6px; } .bubble p:last-child { margin: 0; }
+  .bubble ul, .bubble ol { margin: 4px 0; padding-inline-start: 20px; }
+  .bubble table { border-collapse: collapse; margin: 6px 0; font-size: 14px; }
+  .bubble td, .bubble th { border: 1px solid var(--line); padding: 3px 8px; text-align: start; }
+  .tools { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 6px; }
+  .tool {
+    font-size: 12.5px; padding: 2px 10px; border-radius: 99px;
+    background: #E6EDF7; color: var(--accent);
+  }
+  .meta { font-size: 12.5px; color: var(--ink-soft); margin-top: 5px; }
+  .thinking { color: var(--ink-soft); font-size: 14px; padding: 4px 2px; }
+  .thinking::after { content: "…"; animation: dots 1.2s steps(3) infinite; display: inline-block; width: 1em; overflow: hidden; vertical-align: bottom; }
+  @keyframes dots { from { width: 0 } to { width: 1em } }
+
+  .starters { padding: 4px 0 10px; }
+  .starters p { margin: 0 0 10px; color: var(--ink-soft); }
+  .starters button {
+    display: block; width: 100%; text-align: start; margin-bottom: 8px;
+    background: none; border: 1px dashed var(--line); border-radius: 10px;
+    padding: 9px 12px; cursor: pointer;
+  }
+  .starters button:hover { border-color: var(--accent); background: #F5F8FC; }
+
+  form.composer {
+    display: flex; gap: 8px; padding: 12px 16px 16px; border-top: 1px solid var(--line);
+  }
+  form.composer textarea {
+    flex: 1; resize: none; min-height: 46px; max-height: 140px; padding: 11px 14px;
+    border: 1px solid var(--line); border-radius: 12px; background: var(--paper);
+  }
+  form.composer button {
+    border: 0; border-radius: 12px; padding: 0 18px; background: var(--accent);
+    color: #fff; font-weight: 700; cursor: pointer;
+  }
+  form.composer button:disabled { opacity: .5; cursor: default; }
+
+  /* ---------- memory + board ---------- */
+  main.board-area { min-width: 0; min-height: 0; overflow: auto; padding: 22px 28px 28px; }
+  .memory { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; margin-bottom: 22px; }
+  .memory h2 { font: 700 15px/1 var(--sans); margin: 0 0 0 6px; color: var(--ink-soft); }
+  .pref {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 99px;
+    padding: 3px 12px; font-size: 14px;
+  }
+  .pref b { font-weight: 600; color: var(--ink-soft); }
+  .memory .none { color: var(--ink-soft); font-size: 14px; }
+  .memory .pref.fresh { animation: glow 1.6s ease-out; }
+
+  .board { display: grid; grid-template-columns: repeat(5, minmax(170px, 1fr)); gap: 14px; align-items: start; }
+  .col { border-radius: 14px; padding: 12px 10px 10px; background: #E9EDE7; min-height: 140px; }
+  .col.over { outline: 2px dashed var(--c); outline-offset: -2px; }
+  .col h3 {
+    display: flex; align-items: center; gap: 8px; margin: 0 4px 10px;
+    font: 700 18px/1.2 var(--serif);
+  }
+  .col h3::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--c); }
+  .col h3 .count { margin-inline-start: auto; font: 600 14px var(--sans); color: var(--ink-soft); }
+  .col .empty { font-size: 13.5px; color: var(--ink-soft); margin: 4px; }
+
+  .card {
+    background: var(--surface); border-radius: 10px; padding: 10px 12px; margin-bottom: 8px;
+    border: 1px solid var(--line); border-inline-start: 4px solid var(--c);
+    cursor: grab;
+  }
+  .card.dragging { opacity: .4; }
+  .card .company { font-weight: 700; font-size: 16.5px; }
+  .card .role { color: var(--ink-soft); font-size: 14.5px; }
+  .card .foot { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin-top: 8px; font-size: 12.5px; color: var(--ink-soft); white-space: nowrap; }
+  .card .foot a { color: var(--accent); }
+  .card select {
+    margin-inline-start: auto; font-size: 12.5px; border: 1px solid var(--line);
+    border-radius: 6px; background: var(--paper); padding: 1px 4px;
+  }
+  /* the one orchestrated moment: whatever the assistant just changed lights up */
+  .card.fresh { animation: glow 1.6s ease-out; }
+  @keyframes glow {
+    0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--c, var(--accent)) 60%, transparent); transform: scale(1.03); }
+    100% { box-shadow: 0 0 0 14px transparent; transform: scale(1); }
+  }
+
+  .s-saved { --c: var(--saved); } .s-applied { --c: var(--applied); }
+  .s-interview { --c: var(--interview); } .s-offer { --c: var(--offer); }
+  .s-rejected { --c: var(--rejected); }
+
+  /* ---------- small screens ---------- */
+  @media (max-width: 900px) {
+    .app { height: auto; grid-template-columns: 1fr; grid-template-rows: auto auto auto; }
+    header.top { flex-wrap: wrap; padding: 18px; }
+    .numbers { margin-inline-start: 0; }
+    .chat { height: 70vh; border-inline-end: 0; border-bottom: 1px solid var(--line); }
+    main.board-area { padding: 18px; }
+    .board { grid-template-columns: repeat(5, 78vw); overflow-x: auto; padding-bottom: 8px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="brand">
+      <h1>מסלול</h1>
+      <p>עוזר AI שמנהל את חיפוש העבודה שלך: מועמדויות, ראיונות והעדפות</p>
+    </div>
+    <div class="numbers" aria-live="polite">
+      <div><b id="n-apps">0</b><span>מועמדויות</span></div>
+      <div><b id="n-int">0</b><span>בשלב ראיון</span></div>
+      <div><b id="n-cost">$0.00</b><span id="n-cost-label">עלות AI עד עכשיו</span></div>
+    </div>
+    <button class="reset" id="reset" type="button">להתחיל מחדש</button>
+  </header>
+
+  <section class="chat" aria-label="שיחה עם העוזר">
+    <div class="log" id="log" aria-live="polite"></div>
+    <form class="composer" id="composer">
+      <textarea id="input" rows="1" aria-label="הודעה לעוזר" placeholder="מה חדש בחיפוש העבודה?" required></textarea>
+      <button type="submit" id="send">שליחה</button>
+    </form>
+  </section>
+
+  <main class="board-area">
+    <section class="memory" id="memory" aria-label="מה העוזר זוכר"></section>
+    <section class="board" id="board" aria-label="לוח מועמדויות"></section>
+  </main>
+</div>
+
+<script>
+const STAGES = [
+  ["saved", "שמורות"], ["applied", "הוגשו"], ["interview", "ראיון"],
+  ["offer", "הצעה"], ["rejected", "נדחו"],
+];
+const STAGE_NAME = Object.fromEntries(STAGES);
+const TOOL_LABEL = {
+  add_application: "נוספה מועמדות", update_status: "עודכן סטטוס",
+  list_applications: "נבדקה הרשימה", save_preference: "נשמרה העדפה",
+  fetch_job_posting: "נקרא דף משרה",
+};
+const STARTERS = [
+  "תשמור שאני מחפשת רק משרות היברידיות, Backend בפייתון",
+  "הגשתי היום מועמדות לחברת Monday, תפקיד Backend Developer",
+  "תקרא את דף המשרות https://www.python.org/jobs/ ותגיד אם יש משהו בשבילי",
+];
+
+let state = { applications: [], preferences: {}, stats: {} };
+const $ = (id) => document.getElementById(id);
+
+/* ---------- tiny, safe markdown (bold, lists, tables, links) ---------- */
+function esc(s) {
+  return s.replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+function inline(s) {
+  return esc(s)
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/`([^`]+)`/g, "<code>$1</code>")
+    .replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
+}
+function md(text) {
+  const out = []; let list = null; let table = null;
+  const close = () => {
+    if (list) { out.push(`<${list.tag}>${list.items.join("")}</${list.tag}>`); list = null; }
+    if (table) { out.push(`<table>${table.join("")}</table>`); table = null; }
+  };
+  for (const raw of text.split("\n")) {
+    const line = raw.trim();
+    if (/^\|.*\|$/.test(line)) {
+      if (/^\|[\s\-:|]+\|$/.test(line)) continue;
+      if (list) close();
+      table = table || [];
+      const cells = line.slice(1, -1).split("|").map(c => `<td>${inline(c.trim())}</td>`).join("");
+      table.push(`<tr>${cells}</tr>`); continue;
+    }
+    const ul = line.match(/^[-*]\s+(.*)/), ol = line.match(/^\d+\.\s+(.*)/);
+    if (ul || ol) {
+      if (table) close();
+      const tag = ul ? "ul" : "ol";
+      if (list && list.tag !== tag) close();
+      list = list || { tag, items: [] };
+      list.items.push(`<li>${inline((ul || ol)[1])}</li>`); continue;
+    }
+    close();
+    if (line) out.push(`<p>${inline(line)}</p>`);
+  }
+  close();
+  return out.join("");
+}
+
+/* ---------- chat ---------- */
+function addUser(text) {
+  const el = document.createElement("div");
+  el.className = "msg user"; el.textContent = text;
+  $("log").append(el); scrollDown();
+}
+function addAssistant({ text, tools = [], meta = null, error = false }) {
+  const el = document.createElement("div");
+  el.className = "msg assistant" + (error ? " error" : "");
+  const chips = tools.length
+    ? `<div class="tools">${[...new Set(tools)].map(t => `<span class="tool">${TOOL_LABEL[t] || t}</span>`).join("")}</div>` : "";
+  const m = meta
+    ? `<div class="meta">${meta.model_calls} קריאות למודל, ${meta.tokens.toLocaleString("he-IL")} טוקנים, $${meta.cost_usd.toFixed(4)}, ${meta.cache_pct}% מהמטמון</div>` : "";
+  el.innerHTML = chips + `<div class="bubble">${md(text)}</div>` + m;
+  $("log").append(el); scrollDown();
+}
+function scrollDown() { const l = $("log"); l.scrollTop = l.scrollHeight; }
+function showStarters() {
+  const box = document.createElement("div");
+  box.className = "starters"; box.id = "starters";
+  box.innerHTML = `<p>ספרי לעוזר מה קורה בחיפוש העבודה, והוא יעדכן את הלוח. אפשר להתחיל מאחת מאלה:</p>`;
+  for (const s of STARTERS) {
+    const b = document.createElement("button");
+    b.type = "button"; b.textContent = s;
+    b.onclick = () => { $("input").value = s; $("input").focus(); };
+    box.append(b);
+  }
+  $("log").append(box);
+}
+
+async function send(text) {
+  $("starters")?.remove();
+  addUser(text);
+  const wait = document.createElement("div");
+  wait.className = "thinking"; wait.textContent = "העוזר עובד על זה";
+  $("log").append(wait); scrollDown();
+  $("send").disabled = true;
+  try {
+    const res = await fetch("/api/chat", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: text }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || "השרת החזיר שגיאה");
+    wait.remove();
+    addAssistant({ text: data.reply, tools: data.tools, meta: data.meta });
+    applyState(data.state, true);
+  } catch (e) {
+    wait.remove();
+    addAssistant({ text: e.message === "Failed to fetch" ? "השרת לא עונה. בדקי שהוא רץ בטרמינל." : e.message, error: true });
+  } finally {
+    $("send").disabled = false; $("input").focus();
+  }
+}
+
+/* ---------- board ---------- */
+function applyState(next, highlight = false) {
+  const before = new Map(state.applications.map(a => [a.id, a.status]));
+  const prefsBefore = { ...state.preferences };
+  state = next;
+  const fresh = new Set(highlight
+    ? next.applications.filter(a => before.get(a.id) !== a.status).map(a => a.id) : []);
+  const freshPrefs = new Set(highlight
+    ? Object.keys(next.preferences).filter(k => prefsBefore[k] !== next.preferences[k]) : []);
+  renderNumbers(); renderMemory(freshPrefs); renderBoard(fresh);
+}
+
+function renderNumbers() {
+  const apps = state.applications, s = state.stats || {};
+  $("n-apps").textContent = apps.length;
+  $("n-int").textContent = apps.filter(a => a.status === "interview").length;
+  $("n-cost").textContent = "$" + (s.cost_usd || 0).toFixed(2);
+  $("n-cost-label").textContent = s.turns ? `עלות AI, ${s.cache_pct}% מהמטמון` : "עלות AI עד עכשיו";
+}
+
+function renderMemory(fresh) {
+  const box = $("memory"); const prefs = Object.entries(state.preferences);
+  box.innerHTML = `<h2>מה העוזר זוכר עלייך</h2>`;
+  if (!prefs.length) {
+    box.insertAdjacentHTML("beforeend", `<span class="none">עוד כלום. ספרי לו מה חשוב לך במשרה, והוא ישמור את זה גם לפעם הבאה.</span>`);
+    return;
+  }
+  for (const [k, v] of prefs) {
+    const el = document.createElement("span");
+    el.className = "pref" + (fresh.has(k) ? " fresh" : "");
+    el.innerHTML = `<b>${esc(k.replaceAll("_", " "))}:</b> ${esc(String(v))}`;
+    box.append(el);
+  }
+}
+
+function renderBoard(fresh) {
+  const board = $("board"); board.innerHTML = "";
+  for (const [key, name] of STAGES) {
+    const items = state.applications.filter(a => a.status === key);
+    const col = document.createElement("div");
+    col.className = `col s-${key}`; col.dataset.status = key;
+    col.innerHTML = `<h3>${name}<span class="count">${items.length}</span></h3>`;
+    if (!items.length) col.insertAdjacentHTML("beforeend", `<p class="empty">${key === "applied" && !state.applications.length ? "ספרי לעוזר על משרה שהגשת אליה, והיא תופיע כאן" : "אין כרגע"}</p>`);
+    for (const a of items) col.append(card(a, fresh.has(a.id)));
+    col.addEventListener("dragover", e => { e.preventDefault(); col.classList.add("over"); });
+    col.addEventListener("dragleave", () => col.classList.remove("over"));
+    col.addEventListener("drop", e => {
+      e.preventDefault(); col.classList.remove("over");
+      const id = Number(e.dataTransfer.getData("text/plain"));
+      move(id, key);
+    });
+    board.append(col);
+  }
+}
+
+function card(a, isFresh) {
+  const el = document.createElement("article");
+  el.className = `card s-${a.status}` + (isFresh ? " fresh" : "");
+  el.draggable = true;
+  const date = new Date(a.updated).toLocaleDateString("he-IL", { day: "numeric", month: "short" });
+  const options = STAGES.map(([k, n]) => `<option value="${k}" ${k === a.status ? "selected" : ""}>${n}</option>`).join("");
+  el.innerHTML = `
+    <div class="company">${esc(a.company)}</div>
+    <div class="role">${esc(a.role)}</div>
+    <div class="foot">
+      <span title="עודכן לאחרונה">${date}</span>
+      ${a.url ? `<a href="${esc(a.url)}" target="_blank" rel="noopener">למודעה</a>` : ""}
+      <select aria-label="העברת ${esc(a.company)} לשלב אחר">${options}</select>
+    </div>`;
+  el.addEventListener("dragstart", e => { e.dataTransfer.setData("text/plain", a.id); el.classList.add("dragging"); });
+  el.addEventListener("dragend", () => el.classList.remove("dragging"));
+  el.querySelector("select").addEventListener("change", e => move(a.id, e.target.value));
+  return el;
+}
+
+async function move(id, status) {
+  const current = state.applications.find(a => a.id === id);
+  if (!current || current.status === status) return;
+  const res = await fetch(`/api/applications/${id}`, {
+    method: "PATCH", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ status }),
+  });
+  if (res.ok) applyState(await res.json(), true);
+}
+
+/* ---------- start ---------- */
+$("composer").addEventListener("submit", e => {
+  e.preventDefault();
+  const text = $("input").value.trim();
+  if (!text || $("send").disabled) return;
+  $("input").value = ""; send(text);
+});
+$("input").addEventListener("keydown", e => {
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("composer").requestSubmit(); }
+});
+$("reset").addEventListener("click", async () => {
+  if (!confirm("למחוק את כל המועמדויות, ההעדפות והשיחה, ולהתחיל מאפס?")) return;
+  const res = await fetch("/api/reset", { method: "POST" });
+  $("log").innerHTML = ""; showStarters();
+  applyState(await res.json());
+});
+
+(async function init() {
+  const [s, h] = await Promise.all([fetch("/api/state").then(r => r.json()), fetch("/api/history").then(r => r.json())]);
+  applyState(s);
+  if (!h.length) showStarters();
+  for (const b of h) b.role === "user" ? addUser(b.text) : addAssistant(b);
+})();
+</script>
+</body>
+</html>

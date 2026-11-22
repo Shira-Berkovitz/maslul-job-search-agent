@@ -1,0 +1,28 @@
+{
+  "sessions": [
+    [
+      "אני מחפשת משרות Backend בפייתון, ואני רוצה רק משרות היברידיות. תשמור את זה כהעדפה קבועה.",
+      "תוסיף מועמדות: חברת Alpha, תפקיד Backend Developer, הגשתי היום.",
+      "תקרא את דף המשרות https://www.python.org/jobs/ ותגיד לי בקצרה אם יש שם משרה שמתאימה להעדפות שלי.",
+      "חברת Alpha זימנו אותי לראיון, תעדכן את הסטטוס."
+    ],
+    [
+      "מה ההעדפה ששמרתי לגבי סוג המשרה?",
+      "תוסיף מועמדות לחברת Beta, תפקיד Backend Developer. זו משרה במשרד מלא, 5 ימים בשבוע.",
+      "תן לי סיכום של כל המועמדויות שלי."
+    ]
+  ],
+  "checks": [
+    {"name": "preference_saved_to_memory", "type": "memory_contains_any",
+     "values": ["hybrid", "היברידי"]},
+    {"name": "alpha_status_is_interview", "type": "app_status",
+     "company": "Alpha", "status": "interview"},
+    {"name": "external_tool_used", "type": "tool_called", "tool": "fetch_job_posting", "turn": 3},
+    {"name": "session2_loaded_state_from_disk", "type": "session2_loaded_state"},
+    {"name": "session2_recalls_preference", "type": "response_mentions_any", "turn": 5,
+     "values": ["hybrid", "היברידי"]},
+    {"name": "conflict_did_not_overwrite_preference", "type": "memory_not_contains",
+     "values": ["onsite", "on-site", "office", "משרד מלא"]},
+    {"name": "summary_uses_list_tool", "type": "tool_called", "tool": "list_applications", "turn": 7}
+  ]
+}
